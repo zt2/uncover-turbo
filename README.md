@@ -95,7 +95,7 @@ $ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索所有没有鉴�
 ### 搜索所有没有鉴权的 elasticsearch
 
 ```
-env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索所有没有鉴权的elasticsearch' -json -delay 5 -r -l 10
+$ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索所有没有鉴权的elasticsearch' -json -delay 5 -r -l 10
 
   __  ______  _________ _   _____  _____
  / / / / __ \/ ___/ __ \ | / / _ \/ ___/
