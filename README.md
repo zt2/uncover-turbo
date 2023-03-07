@@ -114,3 +114,25 @@ $ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索所有没有鉴�
 [fofa] {"timestamp":1678181738,"source":"fofa","ip":"47.x.218.16","port":8004,"host":""}
 [fofa] {"timestamp":1678181738,"source":"fofa","ip":"35.x.157.44","port":9200,"host":"cribl.cloud"}
 ```
+
+### 搜索支持列目录的网站
+
+```
+$ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索支持列目录的网站' -json -delay 5 -r -l 10
+
+  __  ______  _________ _   _____  _____
+ / / / / __ \/ ___/ __ \ | / / _ \/ ___/
+/ /_/ / / / / /__/ /_/ / |/ /  __/ /    
+\__,_/_/ /_/\___/\____/|___/\___/_/ v1.0.2
+
+                projectdiscovery.io
+
+[DBG] Translate to fofa query: "body="Index of/" || body="Parent Directory""
+[fofa] {"timestamp":1678182173,"source":"fofa","ip":"210.240.226.36","port":443,"host":"fgchen.com"}
+[fofa] {"timestamp":1678182173,"source":"fofa","ip":"112.74.98.141","port":81,"host":"findic.cc"}
+[fofa] {"timestamp":1678182173,"source":"fofa","ip":"154.31.144.32","port":443,"host":"sanqinxiangmu.com"}
+```
+
+### 有更好的示例？
+
+👏欢迎在 issue 提交更好的 prompt 与搜索示例。
