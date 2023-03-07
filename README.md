@@ -70,7 +70,7 @@ $ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索翻墙机场面�
 ### 搜索所有没有鉴权的 redis
 
 ```
-$ env OPENAI_KEY=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 ./uncover-turbo -v -fofa '搜索所有没有鉴权的 redis' -json -delay 5 -r -l 10
+$ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索所有没有鉴权的 redis' -json -delay 5 -r -l 10
 
   __  ______  _________ _   _____  _____
  / / / / __ \/ ___/ __ \ | / / _ \/ ___/
