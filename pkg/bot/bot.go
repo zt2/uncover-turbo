@@ -2,7 +2,7 @@ package bot
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 
 	"github.com/projectdiscovery/uncover/runner"
@@ -20,9 +20,21 @@ type Bot struct {
 }
 
 func (bot *Bot) Translate(engine, text string) (string, error) {
+	var prompt string
+	switch engine {
+	case "fofa":
+		prompt = fofaPrompt
+	case "censys":
+		prompt = censysPrompt
+	case "quake":
+		prompt = quakePrompt
+	default:
+		return "", errors.New("unsupported engine")
+	}
+
 	initialMessage := openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleSystem,
-		Content: fmt.Sprintf(systemPrompt, engine),
+		Content: prompt,
 	}
 
 	message := openai.ChatCompletionMessage{

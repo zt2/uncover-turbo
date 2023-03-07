@@ -6,15 +6,22 @@
 
 注意：由 GPT-3.5 生成的测绘引擎语法常出现语法错误
 
+目前支持的引擎：
+- FOFA
+- 360 Quake
+- Censys
+
 ## 怎么玩
 1. 将 OpenAI Token 设置为环境变量 `OPENAI_KEY`
 2. 按照官方指导正常配置 `uncover`
-3. 接下来就可以开始玩了，传入自然语言作为查询语法，改造后的 `uncover` 会使用 GPT-3.5-turbo 尽可能的将输入翻译成 `shodan`, `fofa`, `quake`, `zoomeye` 等测绘引擎的语法
+3. 使用 -fofa/-quake/-censys 传入自然语言，改造后的 `uncover` 会使用 GPT-3.5-turbo 尽可能的将输入翻译成指定测绘引擎的语法：
 
-### 查询美国开放了3306端口的主机
+## 一些好玩的示例
+
+### 美国所有开放 3306 端口的主机
 
 ```
-$ env OPENAI_KEY=YOUR-KEY ./uncover-turbo -v -q '查询美国开放了3306端口的主机' -json
+$ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索美国开放了3306端口的主机' -json -delay 5 -r -l 10
 
   __  ______  _________ _   _____  _____
  / / / / __ \/ ___/ __ \ | / / _ \/ ___/
@@ -23,52 +30,25 @@ $ env OPENAI_KEY=YOUR-KEY ./uncover-turbo -v -q '查询美国开放了3306端口
 
                 projectdiscovery.io
 
-[DBG] Translate to fofa query: port="3306" && country="US"
-[DBG] Translate to quake query: find host where port=3306 and country="US"
-[DBG] Translate to zoomeye query: port:3306 country:"United States"
-[DBG] Translate to shodan query: country:"US" port:"3306" has_ipv4:true has_ipv6:true
-[zoomeye] unexpected status code 403 received from https://api.zoomeye.org/host/search?query=find host where port=3306 and country="US"&page=1
-[quake] json: cannot unmarshal string into Go struct field Response.code of type int
-[quake] json: cannot unmarshal string into Go struct field Response.code of type int
-[quake] json: cannot unmarshal string into Go struct field Response.code of type int
-[quake] {"timestamp":1678132746,"source":"quake","ip":"34.28.129.216","port":3306,"host":"216.129.28.34.bc.googleusercontent.com"}
-[quake] {"timestamp":1678132746,"source":"quake","ip":"198.154.193.40","port":3306,"host":"198-154-193-40.unifiedlayer.com"}
-[quake] {"timestamp":1678132746,"source":"quake","ip":"13.56.100.193","port":3306,"host":"ec2-13-56-100-193.us-west-1.compute.amazonaws.com"}
-[quake] {"timestamp":1678132746,"source":"quake","ip":"144.126.248.35","port":3306,"host":""}
-[quake] {"timestamp":1678132746,"source":"quake","ip":"5.8.41.232","port":3306,"host":"kvm11.ny2.gcorelabs.com"}
-[quake] {"timestamp":1678132746,"source":"quake","ip":"67.225.147.52","port":3306,"host":"asphost214.asphostserver.org"}
-[quake] {"timestamp":1678132746,"source":"quake","ip":"23.225.109.118","port":3306,"host":""}
-[quake] {"timestamp":1678132746,"source":"quake","ip":"198.154.193.194","port":3306,"host":"web.5lottomonkeys.com"}
-[quake] {"timestamp":1678132746,"source":"quake","ip":"3.138.46.229","port":3306,"host":"ec2-3-138-46-229.us-east-2.compute.amazonaws.com"}
-[quake] {"timestamp":1678132746,"source":"quake","ip":"34.192.89.16","port":3306,"host":"ec2-34-192-89-16.compute-1.amazonaws.com"}
-[quake] {"timestamp":1678132746,"source":"quake","ip":"13.66.29.25","port":3306,"host":""}
-[quake] {"timestamp":1678132746,"source":"quake","ip":"198.154.193.213","port":3306,"host":"198-154-193-213.unifiedlayer.com"}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"160.72.106.98","port":1443,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"80.84.30.24","port":5060,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"160.72.82.98","port":1443,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.195.208.146","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"142.252.127.72","port":8478,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.195.251.14","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.195.113.210","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.195.251.30","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.197.133.90","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.199.0.118","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.193.153.214","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.206.15.78","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.207.60.23","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"142.252.127.84","port":8478,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.193.1.133","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.195.194.134","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.195.222.218","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.195.225.146","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.197.43.83","port":32791,"host":""}
-[zoomeye] {"timestamp":1678132756,"source":"zoomeye","ip":"68.194.250.72","port":32791,"host":""}
+[DBG] Translate to fofa query: "port="3306" && country="US""
+[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"g-b.cn"}
+[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"ejjq.com"}
+[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"tttuuu.com"}
+[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"shangye.biz"}
+[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"yyyccc.com"}
+[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"rencai.biz"}
+[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"kkkggg.com"}
+[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"gongqiu.biz"}
+[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"dinggou.biz"}
+[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"3-1.cn"}
+[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"fuwu.biz"}
+[fofa] {"timestamp":1678181098,"source":"fofa","ip":"47.89.255.228","port":3306,"host":"ptb2bvip.com"}
 ```
 
-### 查询使用 CF 作为 CDN 的主机
+### 搜索翻墙机场面板
 
 ```
-$ env OPENAI_KEY=YOUR-KEY ./uncover-turbo -v -q '使用cloudflare cdn的主机' -json -delay 5 -r
+$ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索翻墙机场面板' -json -delay 5 -r -l 10
 
   __  ______  _________ _   _____  _____
  / / / / __ \/ ___/ __ \ | / / _ \/ ___/
@@ -77,49 +57,20 @@ $ env OPENAI_KEY=YOUR-KEY ./uncover-turbo -v -q '使用cloudflare cdn的主机' 
 
                 projectdiscovery.io
 
-[DBG] Translate to fofa query: "http.title=\"Attention Required! | Cloudflare\""
-[DBG] Translate to quake query: "cloudflare cdn 主机" -> "cdns('cloudflare')"
-[DBG] Translate to zoomeye query: http.component:cloudflare && http.component:server
-[DBG] Translate to shodan query: `http.html: "Server: cloudflare"`
-[quake] json: cannot unmarshal string into Go struct field Response.code of type int
-[quake] json: cannot unmarshal string into Go struct field Response.code of type int
-[quake] json: cannot unmarshal string into Go struct field Response.code of type int
-[zoomeye] {"timestamp":1678133907,"source":"zoomeye","ip":"144.24.14.233","port":443,"host":""}
-[zoomeye] {"timestamp":1678133907,"source":"zoomeye","ip":"141.148.178.242","port":443,"host":""}
-[zoomeye] {"timestamp":1678133907,"source":"zoomeye","ip":"141.148.169.88","port":443,"host":""}
-[zoomeye] {"timestamp":1678133907,"source":"zoomeye","ip":"141.148.181.1","port":443,"host":""}
-[zoomeye] {"timestamp":1678133907,"source":"zoomeye","ip":"141.148.148.13","port":443,"host":""}
-[zoomeye] {"timestamp":1678133907,"source":"zoomeye","ip":"144.126.213.82","port":80,"host":""}
-[zoomeye] {"timestamp":1678133907,"source":"zoomeye","ip":"138.197.234.171","port":443,"host":""}
-[zoomeye] {"timestamp":1678133907,"source":"zoomeye","ip":"18.216.88.52","port":9000,"host":""}
-[zoomeye] {"timestamp":1678133907,"source":"zoomeye","ip":"8.28.167.10","port":18080,"host":""}
-[zoomeye] {"timestamp":1678133907,"source":"zoomeye","ip":"212.188.136.39","port":8080,"host":""}
-[zoomeye] unexpected status code 403 received from https://api.zoomeye.org/host/search?query="cloudflare cdn 主机" -> "cdns('cloudflare')"&page=2
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"13.214.152.247","port":34599,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"182.160.16.234","port":10035,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"8.213.129.15","port":7707,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"8.209.253.237","port":7707,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"8.209.243.173","port":7707,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"8.219.74.58","port":7707,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"8.219.5.240","port":7707,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"8.208.89.32","port":7707,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"8.219.43.134","port":7707,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"37.143.129.214","port":9292,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"8.209.240.66","port":7707,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"8.219.169.172","port":7707,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"8.213.128.6","port":7707,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"157.175.44.122","port":8002,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"188.121.114.63","port":8880,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"188.121.119.124","port":8880,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"188.121.116.204","port":8880,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"93.240.86.179","port":8182,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"93.240.182.242","port":8182,"host":""}
-[zoomeye] {"timestamp":1678133913,"source":"zoomeye","ip":"38.242.7.18","port":3128,"host":""}
+[DBG] Translate to fofa query: "title="翻墙机场" && (body="ssr-panel" || body="v2board" || body="naiveproxy" || body="vpnpanel" || body="soga" || body="trojan-panel")"
+[fofa] {"timestamp":1678181237,"source":"fofa","ip":"172.67.176.139","port":443,"host":"翻墙机场.net"}
+[fofa] {"timestamp":1678181237,"source":"fofa","ip":"202.182.108.34","port":443,"host":"clashios.com"}
+[fofa] {"timestamp":1678181237,"source":"fofa","ip":"45.32.85.17","port":443,"host":"clashnode.xyz"}
+[fofa] {"timestamp":1678181237,"source":"fofa","ip":"172.67.147.149","port":443,"host":"sub-gfwairport.download"}
+[fofa] {"timestamp":1678181237,"source":"fofa","ip":"172.67.147.149","port":80,"host":"sub-gfwairport.download"}
+[fofa] {"timestamp":1678181237,"source":"fofa","ip":"172.67.180.72","port":443,"host":"翻墙机场.xyz"}
+[fofa] {"timestamp":1678181237,"source":"fofa","ip":"104.21.19.241","port":443,"host":"gfwairport.icu"}
 ```
 
-### 查询日本所有数据库
+### 搜索所有没有鉴权的 redis
+
 ```
-./uncover-turbo -v -q '日本地区所有数据库' -json -delay 5 -r
+$ env OPENAI_KEY=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 ./uncover-turbo -v -fofa '搜索所有没有鉴权的 redis' -json -delay 5 -r -l 10
 
   __  ______  _________ _   _____  _____
  / / / / __ \/ ___/ __ \ | / / _ \/ ___/
@@ -128,8 +79,38 @@ $ env OPENAI_KEY=YOUR-KEY ./uncover-turbo -v -q '使用cloudflare cdn的主机' 
 
                 projectdiscovery.io
 
-[DBG] Translate to fofa query: country="JP" && app="MySQL" or app="PostgreSQL" or app="MongoDB" or app="Redis" or app="Elasticsearch"
-[DBG] Translate to quake query: 
-[DBG] Translate to zoomeye query: country:"JP" && app:"mongodb"
-[DBG] Translate to shodan query: country:"JP" port:27017,3306,5432 product:"MongoDB" or product:"MySQL" or product:"PostgreSQL"
+[DBG] Translate to fofa query: "port="6379" && body="*-NOAUTH*""
+[fofa] {"timestamp":1678181323,"source":"fofa","ip":"61.xx.36.131","port":6379,"host":""}
+[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.46.124","port":6379,"host":""}
+[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.x.16.120","port":6379,"host":""}
+[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.74.43","port":6379,"host":""}
+[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.85.92","port":6379,"host":""}
+[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.54.191","port":6379,"host":""}
+[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.15.113","port":6379,"host":""}
+[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.31.93","port":6379,"host":""}
+[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.18.106","port":6379,"host":""}
+[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.73.158","port":6379,"host":""}
+```
+
+### 搜索所有没有鉴权的 elasticsearch
+
+```
+env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索所有没有鉴权的elasticsearch' -json -delay 5 -r -l 10
+
+  __  ______  _________ _   _____  _____
+ / / / / __ \/ ___/ __ \ | / / _ \/ ___/
+/ /_/ / / / / /__/ /_/ / |/ /  __/ /    
+\__,_/_/ /_/\___/\____/|___/\___/_/ v1.0.2
+
+                projectdiscovery.io
+
+[DBG] Translate to fofa query: "body="You Know, for Search" && status_code!="401""
+[fofa] {"timestamp":1678181738,"source":"fofa","ip":"8.xxx.46.19","port":8084,"host":""}
+[fofa] {"timestamp":1678181738,"source":"fofa","ip":"47.x.49.11","port":87,"host":""}
+[fofa] {"timestamp":1678181738,"source":"fofa","ip":"116.x.129.215","port":8003,"host":""}
+[fofa] {"timestamp":1678181738,"source":"fofa","ip":"44.x.97.208","port":9200,"host":"cribl.cloud"}
+[fofa] {"timestamp":1678181738,"source":"fofa","ip":"35.x.49.186","port":9200,"host":""}
+[fofa] {"timestamp":1678181738,"source":"fofa","ip":"34.x.210.219","port":9200,"host":""}
+[fofa] {"timestamp":1678181738,"source":"fofa","ip":"47.x.218.16","port":8004,"host":""}
+[fofa] {"timestamp":1678181738,"source":"fofa","ip":"35.x.157.44","port":9200,"host":"cribl.cloud"}
 ```

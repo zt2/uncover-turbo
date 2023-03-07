@@ -21,44 +21,51 @@ func main() {
 		gologger.Fatal().Msgf("Could not create runner: %s\n", err)
 	}
 
-	if len(options.Query) > 0 {
-		for _, query := range options.Query {
+	if len(options.Censys) == 0 &&
+		len(options.Quake) == 0 &&
+		len(options.Fofa) == 0 {
+		gologger.Fatal().Msg("no engine specified, only censys/quake/fofa supported for now, plese use -fofa/-quake/-censys instead of -query")
+	}
+
+	if len(options.Censys) > 0 {
+		for idx, query := range options.Censys {
+			if text, err := translate("censys", query); err != nil {
+				gologger.Fatal().Msgf("Could not translate query: %s\n", err)
+			} else {
+				gologger.Debug().Msgf("Translate to censys query: \"%s\"\n", text)
+
+				options.Censys[idx] = text
+			}
+		}
+	}
+
+	if len(options.Fofa) > 0 {
+		for idx, query := range options.Fofa {
 			if text, err := translate("fofa", query); err != nil {
 				gologger.Fatal().Msgf("Could not translate query: %s\n", err)
 			} else {
-				gologger.Debug().Msgf("Translate to fofa query: %s\n", text)
+				gologger.Debug().Msgf("Translate to fofa query: \"%s\"\n", text)
 
-				options.Fofa = []string{text}
-			}
-
-			if text, err := translate("360 Quake", query); err != nil {
-				gologger.Fatal().Msgf("Could not translate query: %s\n", err)
-			} else {
-				gologger.Debug().Msgf("Translate to quake query: %s\n", text)
-
-				options.Quake = []string{text}
-			}
-
-			if text, err := translate("zoomeye", query); err != nil {
-				gologger.Fatal().Msgf("Could not translate query: %s\n", err)
-			} else {
-				gologger.Debug().Msgf("Translate to zoomeye query: %s\n", text)
-
-				options.ZoomEye = []string{text}
-			}
-
-			if text, err := translate("shodan", query); err != nil {
-				gologger.Fatal().Msgf("Could not translate query: %s\n", err)
-			} else {
-				gologger.Debug().Msgf("Translate to shodan query: %s\n", text)
-
-				options.Shodan = []string{text}
+				options.Fofa[idx] = text
 			}
 		}
-
-		options.Query = []string{}
-		options.Engine = []string{}
 	}
+
+	if len(options.Quake) > 0 {
+		for idx, query := range options.Quake {
+			if text, err := translate("quake", query); err != nil {
+				gologger.Fatal().Msgf("Could not translate query: %s\n", err)
+			} else {
+				gologger.Debug().Msgf("Translate to quake query: \"%s\"\n", text)
+
+				options.Quake[idx] = text
+			}
+		}
+	}
+
+	// Disable default parameters
+	options.Query = []string{}
+	options.Engine = []string{}
 
 	err = newRunner.Run(context.Background(), options.Query...)
 	if err != nil {
