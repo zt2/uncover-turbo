@@ -15,7 +15,7 @@
 ## 怎么玩
 1. 将 OpenAI Token 设置为环境变量 `OPENAI_KEY`
 2. 按照官方指导正常配置 `uncover`
-3. 使用 -fofa/-quake/-censys 传入自然语言，改造后的 `uncover` 会使用 GPT-3.5-turbo 尽可能的将输入翻译成指定测绘引擎的语法：
+3. 使用 -fofa/-quake/-censys/-zoomeye 传入自然语言，改造后的 `uncover` 会使用 GPT-3.5-turbo 尽可能的将输入翻译成指定测绘引擎的语法：
 
 ## 一些好玩的示例
 
