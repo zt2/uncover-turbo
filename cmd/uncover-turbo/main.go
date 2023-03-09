@@ -23,8 +23,9 @@ func main() {
 
 	if len(options.Censys) == 0 &&
 		len(options.Quake) == 0 &&
-		len(options.Fofa) == 0 {
-		gologger.Fatal().Msg("no engine specified, only censys/quake/fofa supported for now, plese use -fofa/-quake/-censys instead of -query")
+		len(options.Fofa) == 0 &&
+		len(options.ZoomEye) == 0 {
+		gologger.Fatal().Msg("no engine specified, only censys/quake/fofa/zoomeye supported for now, plese use -fofa/-quake/-censys/-zoomeye instead of -query")
 	}
 
 	if len(options.Censys) > 0 {
@@ -32,7 +33,7 @@ func main() {
 			if text, err := translate("censys", query); err != nil {
 				gologger.Fatal().Msgf("Could not translate query: %s\n", err)
 			} else {
-				gologger.Debug().Msgf("Translate to censys query: \"%s\"\n", text)
+				gologger.Info().Msgf("Translate to censys query: \"%s\"\n", text)
 
 				options.Censys[idx] = text
 			}
@@ -44,7 +45,7 @@ func main() {
 			if text, err := translate("fofa", query); err != nil {
 				gologger.Fatal().Msgf("Could not translate query: %s\n", err)
 			} else {
-				gologger.Debug().Msgf("Translate to fofa query: \"%s\"\n", text)
+				gologger.Info().Msgf("Translate to fofa query: \"%s\"\n", text)
 
 				options.Fofa[idx] = text
 			}
@@ -56,9 +57,21 @@ func main() {
 			if text, err := translate("quake", query); err != nil {
 				gologger.Fatal().Msgf("Could not translate query: %s\n", err)
 			} else {
-				gologger.Debug().Msgf("Translate to quake query: \"%s\"\n", text)
+				gologger.Info().Msgf("Translate to quake query: \"%s\"\n", text)
 
 				options.Quake[idx] = text
+			}
+		}
+	}
+
+	if len(options.ZoomEye) > 0 {
+		for idx, query := range options.ZoomEye {
+			if text, err := translate("zoomeye", query); err != nil {
+				gologger.Fatal().Msgf("Could not translate query: %s\n", err)
+			} else {
+				gologger.Info().Msgf("Translate to zoomeye query: \"%s\"\n", text)
+
+				options.ZoomEye[idx] = text
 			}
 		}
 	}

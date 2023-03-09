@@ -28,6 +28,8 @@ func (bot *Bot) Translate(engine, text string) (string, error) {
 		prompt = censysPrompt
 	case "quake":
 		prompt = quakePrompt
+	case "zoomeye":
+		prompt = zoomeyePrompt
 	default:
 		return "", errors.New("unsupported engine")
 	}

@@ -10,6 +10,7 @@
 - FOFA
 - 360 Quake
 - Censys
+- ZoomEye
 
 ## 怎么玩
 1. 将 OpenAI Token 设置为环境变量 `OPENAI_KEY`
