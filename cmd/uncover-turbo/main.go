@@ -16,11 +16,6 @@ func main() {
 	// Parse the command line flags and read config files
 	options := runner.ParseOptions()
 
-	newRunner, err := runner.NewRunner(options)
-	if err != nil {
-		gologger.Fatal().Msgf("Could not create runner: %s\n", err)
-	}
-
 	if len(options.Censys) == 0 &&
 		len(options.Quake) == 0 &&
 		len(options.Fofa) == 0 &&
@@ -76,11 +71,14 @@ func main() {
 		}
 	}
 
-	// Disable default parameters
-	options.Query = []string{}
-	options.Engine = []string{}
+	// Create the runner after the queries have been translated, so the
+	// translated engine queries are the ones executed by the runner.
+	newRunner, err := runner.NewRunner(options)
+	if err != nil {
+		gologger.Fatal().Msgf("Could not create runner: %s\n", err)
+	}
 
-	err = newRunner.Run(context.Background(), options.Query...)
+	err = newRunner.Run(context.Background())
 	if err != nil {
 		gologger.Fatal().Msgf("Could not run enumeration: %s\n", err)
 	}
