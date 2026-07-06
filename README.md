@@ -1,139 +1,154 @@
-# 简介
+# uncover-turbo
 
-这是一个有趣的小 demo，想测试是否可以通过 GPT-3.5 为众多语法繁杂的测绘搜索引擎建立一个 `巴别塔`，来实现通用的自然语言测绘引擎，打通自然语言到测绘语法的最后一公里。
+一个自然语言驱动的**跨多测绘引擎**查询与聚合工具。输入一句自然语言,它会翻译成通用查询、并发查询多个测绘搜索引擎(FOFA / 360 Quake / Censys / ZoomEye / Hunter 等),再把结果**聚合去重**成统一的资产视图。
 
-项目基于 project-discovery 的 [uncover](https://github.com/projectdiscovery/uncover) 改造而成，加入了自然语言到查询语法的翻译。
+项目基于 project-discovery 的 [uncover](https://github.com/projectdiscovery/uncover) 改造而成。
 
-注意：由 GPT-3.5 生成的测绘引擎语法常出现语法错误
-
-目前支持的引擎：
-- FOFA
-- 360 Quake
-- Censys
-- ZoomEye
-
-## 怎么玩
-1. 将 OpenAI Token 设置为环境变量 `OPENAI_KEY`
-2. 按照官方指导正常配置 `uncover`
-3. 使用 -fofa/-quake/-censys/-zoomeye 传入自然语言，改造后的 `uncover` 会使用 GPT-3.5-turbo 尽可能的将输入翻译成指定测绘引擎的语法：
-
-## 一些好玩的示例
-
-### 美国所有开放 3306 端口的主机
+## 核心架构:三层查询链路
 
 ```
-$ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索美国开放了3306端口的主机' -json -delay 5 -r -l 10
-
-  __  ______  _________ _   _____  _____
- / / / / __ \/ ___/ __ \ | / / _ \/ ___/
-/ /_/ / / / / /__/ /_/ / |/ /  __/ /    
-\__,_/_/ /_/\___/\____/|___/\___/_/ v1.0.2
-
-                projectdiscovery.io
-
-[DBG] Translate to fofa query: "port="3306" && country="US""
-[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"g-b.cn"}
-[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"ejjq.com"}
-[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"tttuuu.com"}
-[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"shangye.biz"}
-[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"yyyccc.com"}
-[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"rencai.biz"}
-[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"kkkggg.com"}
-[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"gongqiu.biz"}
-[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"dinggou.biz"}
-[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"3-1.cn"}
-[fofa] {"timestamp":1678181098,"source":"fofa","ip":"193.227.114.8","port":3306,"host":"fuwu.biz"}
-[fofa] {"timestamp":1678181098,"source":"fofa","ip":"47.89.255.228","port":3306,"host":"ptb2bvip.com"}
+                 (仅此一步用 LLM)          (确定性,纯代码)
+  自然语言 NL ──► 通用中间层 IR ──► 各引擎专有查询语法 ──► uncover 并发查询 ──► 聚合去重 ──► 资产
+                     ▲
+        机器调用方可直接从这里注入 IR(绕过自然语言 / LLM)
 ```
 
-### 搜索翻墙机场面板
+- **上层(NL → IR)**:LLM 把自然语言翻译成**唯一目标语法——通用 IR**。LLM 只需掌握一种语法,鲁棒性远高于「为每个引擎各生成一种语法」。
+- **中层(IR)**:引擎无关的**机器查询表示**(JSON 可序列化的布尔 AST)。非人程序可**直接构造 IR**,绕过 LLM,得到同样的跨引擎聚合结果。
+- **下层(IR → 引擎)**:每个引擎一个**确定性编译器**,把 IR 编译为该引擎专有语法。同一 IR 恒定产出同一查询串,不经 LLM。
 
-```
-$ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索翻墙机场面板' -json -delay 5 -r -l 10
+好处:程序化调用友好;各引擎语法确定性生成,基本消除「LLM 产出各引擎语法错误」的老问题。
 
-  __  ______  _________ _   _____  _____
- / / / / __ \/ ___/ __ \ | / / _ \/ ___/
-/ /_/ / / / / /__/ /_/ / |/ /  __/ /    
-\__,_/_/ /_/\___/\____/|___/\___/_/ v1.0.2
+## 特性
 
-                projectdiscovery.io
+- **跨引擎并发**查询 + **聚合去重**(默认按 `IP:Port` 去重)。
+- **富字段合并**:合并后的资产取各引擎字段的**并集(超集)**,而非公共交集;各引擎原始 JSON 无损保留在 `per_source`。
+- **可配置 LLM 后端**:支持 OpenAI、OpenRouter 及任意 OpenAI 兼容端点(改 `base_url` 即可)。
+- **引擎可启用/禁用**。
+- **CLI**:支持 `-json` 结构化输出与彩色标准输出(`auto`/`always`/`never`)。
+- **核心与展示解耦**:核心库(`pkg/search`)零 stdout / 零 `os.Exit`,便于将来做 Web。
 
-[DBG] Translate to fofa query: "title="翻墙机场" && (body="ssr-panel" || body="v2board" || body="naiveproxy" || body="vpnpanel" || body="soga" || body="trojan-panel")"
-[fofa] {"timestamp":1678181237,"source":"fofa","ip":"172.67.176.139","port":443,"host":"翻墙机场.net"}
-[fofa] {"timestamp":1678181237,"source":"fofa","ip":"202.182.108.34","port":443,"host":"clashios.com"}
-[fofa] {"timestamp":1678181237,"source":"fofa","ip":"45.32.85.17","port":443,"host":"clashnode.xyz"}
-[fofa] {"timestamp":1678181237,"source":"fofa","ip":"172.67.147.149","port":443,"host":"sub-gfwairport.download"}
-[fofa] {"timestamp":1678181237,"source":"fofa","ip":"172.67.147.149","port":80,"host":"sub-gfwairport.download"}
-[fofa] {"timestamp":1678181237,"source":"fofa","ip":"172.67.180.72","port":443,"host":"翻墙机场.xyz"}
-[fofa] {"timestamp":1678181237,"source":"fofa","ip":"104.21.19.241","port":443,"host":"gfwairport.icu"}
-```
+目前内置编译器覆盖的引擎:**FOFA、Censys、Hunter、ZoomEye**(其余 uncover 引擎可按需扩展映射表)。
 
-### 搜索所有没有鉴权的 redis
+## 安装
 
-```
-$ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索所有没有鉴权的 redis' -json -delay 5 -r -l 10
-
-  __  ______  _________ _   _____  _____
- / / / / __ \/ ___/ __ \ | / / _ \/ ___/
-/ /_/ / / / / /__/ /_/ / |/ /  __/ /    
-\__,_/_/ /_/\___/\____/|___/\___/_/ v1.0.2
-
-                projectdiscovery.io
-
-[DBG] Translate to fofa query: "port="6379" && body="*-NOAUTH*""
-[fofa] {"timestamp":1678181323,"source":"fofa","ip":"61.xx.36.131","port":6379,"host":""}
-[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.46.124","port":6379,"host":""}
-[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.x.16.120","port":6379,"host":""}
-[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.74.43","port":6379,"host":""}
-[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.85.92","port":6379,"host":""}
-[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.54.191","port":6379,"host":""}
-[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.15.113","port":6379,"host":""}
-[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.31.93","port":6379,"host":""}
-[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.18.106","port":6379,"host":""}
-[fofa] {"timestamp":1678181323,"source":"fofa","ip":"114.xx.73.158","port":6379,"host":""}
+```bash
+go build -o uncover-turbo ./cmd/uncover-turbo
 ```
 
-### 搜索所有没有鉴权的 elasticsearch
+## 配置
 
-```
-$ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索所有没有鉴权的elasticsearch' -json -delay 5 -r -l 10
+### 引擎凭据
 
-  __  ______  _________ _   _____  _____
- / / / / __ \/ ___/ __ \ | / / _ \/ ___/
-/ /_/ / / / / /__/ /_/ / |/ /  __/ /    
-\__,_/_/ /_/\___/\____/|___/\___/_/ v1.0.2
+各测绘引擎的 API Key 沿用 **uncover 自身的配置方式**(环境变量 / provider-config),请按 [uncover 官方指导](https://github.com/projectdiscovery/uncover) 配置。
 
-                projectdiscovery.io
+### 本工具配置文件(LLM 后端 / 引擎开关 / 输出)
 
-[DBG] Translate to fofa query: "body="You Know, for Search" && status_code!="401""
-[fofa] {"timestamp":1678181738,"source":"fofa","ip":"8.xxx.46.19","port":8084,"host":""}
-[fofa] {"timestamp":1678181738,"source":"fofa","ip":"47.x.49.11","port":87,"host":""}
-[fofa] {"timestamp":1678181738,"source":"fofa","ip":"116.x.129.215","port":8003,"host":""}
-[fofa] {"timestamp":1678181738,"source":"fofa","ip":"44.x.97.208","port":9200,"host":"cribl.cloud"}
-[fofa] {"timestamp":1678181738,"source":"fofa","ip":"35.x.49.186","port":9200,"host":""}
-[fofa] {"timestamp":1678181738,"source":"fofa","ip":"34.x.210.219","port":9200,"host":""}
-[fofa] {"timestamp":1678181738,"source":"fofa","ip":"47.x.218.16","port":8004,"host":""}
-[fofa] {"timestamp":1678181738,"source":"fofa","ip":"35.x.157.44","port":9200,"host":"cribl.cloud"}
-```
+默认路径 `~/.config/uncover-turbo/config.yaml`(可用 `-config` 指定):
 
-### 搜索支持列目录的网站
-
-```
-$ env OPENAI_KEY=YOUR_KEY_HERE ./uncover-turbo -v -fofa '搜索支持列目录的网站' -json -delay 5 -r -l 10
-
-  __  ______  _________ _   _____  _____
- / / / / __ \/ ___/ __ \ | / / _ \/ ___/
-/ /_/ / / / / /__/ /_/ / |/ /  __/ /    
-\__,_/_/ /_/\___/\____/|___/\___/_/ v1.0.2
-
-                projectdiscovery.io
-
-[DBG] Translate to fofa query: "body="Index of/" || body="Parent Directory""
-[fofa] {"timestamp":1678182173,"source":"fofa","ip":"210.240.226.36","port":443,"host":"fgchen.com"}
-[fofa] {"timestamp":1678182173,"source":"fofa","ip":"112.74.98.141","port":81,"host":"findic.cc"}
-[fofa] {"timestamp":1678182173,"source":"fofa","ip":"154.31.144.32","port":443,"host":"sanqinxiangmu.com"}
+```yaml
+llm:
+  base_url: "https://api.openai.com/v1"   # 换成 https://openrouter.ai/api/v1 即用 OpenRouter
+  model:    "gpt-3.5-turbo"
+  api_key:  ""                            # 建议留空,用环境变量覆盖
+  temperature: 0.0
+engines:
+  enabled: [fofa, censys, hunter, zoomeye]
+output:
+  format: text                            # text | json
+  color:  auto                            # auto | always | never
+limit: 100
 ```
 
-### 有更好的示例？
+配置优先级(由低到高):**内置默认 < YAML 文件 < 环境变量 < 命令行参数**。
 
-👏欢迎在 issue 提交更好的 prompt 与搜索示例。
+敏感/常改项可用环境变量覆盖:
+
+| 环境变量 | 作用 |
+|---|---|
+| `UNCOVER_TURBO_LLM_API_KEY`  | LLM API Key |
+| `UNCOVER_TURBO_LLM_BASE_URL` | LLM Base URL |
+| `UNCOVER_TURBO_LLM_MODEL`    | LLM 模型名 |
+
+## 使用
+
+### 自然语言入口(`-q`,需配置 LLM)
+
+```bash
+export UNCOVER_TURBO_LLM_API_KEY=sk-xxx
+./uncover-turbo -q '美国开放 3306 端口的主机' -e fofa,censys -v
+```
+
+`-v` 会在 stderr 打印翻译出的 IR 以及各引擎编译出的查询语法。
+
+### 机器入口(`-ir`,绕过 LLM)
+
+直接提供 IR(JSON),适合程序化调用;`-ir -` 可从 stdin 读取:
+
+```bash
+./uncover-turbo -ir '{"and":[
+  {"match":{"field":"port","op":"eq","value":"3306"}},
+  {"match":{"field":"country","op":"eq","value":"US"}}
+]}' -json
+
+echo '{"match":{"field":"title","op":"contains","value":"admin"}}' | ./uncover-turbo -ir -
+```
+
+### 常用参数
+
+| 参数 | 说明 |
+|---|---|
+| `-q <text>`      | 自然语言查询(LLM 上层) |
+| `-ir <json>`     | 直接提供 IR(`-` 表示从 stdin 读取) |
+| `-e, -engines`   | 逗号分隔的引擎列表(覆盖配置) |
+| `-config <path>` | 配置文件路径 |
+| `-json`          | 输出 JSON |
+| `-no-color`      | 关闭颜色 |
+| `-l, -limit`     | 每引擎结果上限 |
+| `-proxy`         | HTTP 代理 |
+| `-v`             | 打印 IR 与各引擎查询到 stderr |
+
+## 中间层 IR 参考
+
+IR 是一棵布尔 AST,每个节点四选一:
+
+```jsonc
+{"and": [<expr>, ...]}                                  // 逻辑与(≥2 子节点)
+{"or":  [<expr>, ...]}                                  // 逻辑或(≥2 子节点)
+{"not": <expr>}                                          // 逻辑非
+{"match": {"field": <字段>, "op": <eq|contains|ne>, "value": <字符串>}}
+```
+
+规范字段(引擎无关):`ip`、`port`、`domain`、`host`、`title`、`body`、`product`、`country`、`org`、`asn`、`protocol`、`status`、`cert.subject_cn`、`os`。
+
+> 某引擎无法表达 IR 中的某字段/操作符时,该引擎会被**跳过并记录**(不发出错误查询),其余引擎照常返回。
+
+## 开发
+
+本仓库遵循 **SDD(规约驱动开发)红线**,流程与设计文档见 `specs/cross-engine-search/`(spec → plan → tasks)与根目录 `CLAUDE.md`。
+
+```bash
+go build ./...
+go vet ./...
+go test ./...
+```
+
+包结构:
+
+```
+cmd/uncover-turbo   薄 CLI 前端
+pkg/queryir         中间层 IR(AST / 词汇 / 校验)
+pkg/compiler        IR → 各引擎语法的确定性编译器(数据驱动 dialect)
+pkg/llm             NL → IR 翻译器(OpenAI 兼容)
+pkg/prompts         NL → IR 提示词
+pkg/asset           资产模型 + 聚合去重
+pkg/search          核心编排(SearchNL / SearchIR)
+pkg/config          配置载入
+pkg/render          JSON / 彩色文本渲染
+```
+
+## 说明
+
+- 由 LLM 生成的查询可能存在语义偏差;`-v` 可查看翻译出的 IR 与各引擎查询便于核对。
+- 各引擎字段映射为当前版本的最佳近似,以各引擎官方语法文档为准,可在 `pkg/compiler/engines.go` 增量校正。
+- 本工具用于**授权范围内**的资产测绘与安全研究。
