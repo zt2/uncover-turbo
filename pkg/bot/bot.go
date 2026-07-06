@@ -62,11 +62,11 @@ func (bot *Bot) Translate(engine, text string) (string, error) {
 }
 
 func (bot *Bot) Query(query string) error {
-	options := &runner.Options{}
+	options := &runner.Options{Query: []string{query}}
 	r, err := runner.NewRunner(options)
 	if err != nil {
 		return err
 	}
 
-	return r.Run(context.Background(), query)
+	return r.Run(context.Background())
 }
