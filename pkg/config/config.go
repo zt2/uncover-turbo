@@ -105,9 +105,11 @@ func Load(path string) (*Config, error) {
 	return cfg, nil
 }
 
-// applyEnv overrides LLM fields from environment variables when set.
+// applyEnv overrides LLM fields from environment variables when set to a
+// non-empty value. An empty variable is ignored so it never clears a value that
+// came from the config file.
 func applyEnv(cfg *Config) {
-	if v, ok := os.LookupEnv(EnvLLMAPIKey); ok {
+	if v, ok := os.LookupEnv(EnvLLMAPIKey); ok && v != "" {
 		cfg.LLM.APIKey = v
 	}
 	if v, ok := os.LookupEnv(EnvLLMBaseURL); ok && v != "" {

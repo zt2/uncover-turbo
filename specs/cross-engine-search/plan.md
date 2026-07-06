@@ -115,17 +115,18 @@ type Compiler interface {
 
 ```go
 type Asset struct {
-    IP        string                     `json:"ip,omitempty"`
-    Port      int                        `json:"port,omitempty"`
-    Hosts     []string                   `json:"hosts,omitempty"`
-    URLs      []string                   `json:"urls,omitempty"`
-    Sources   []string                   `json:"sources"`
-    Fields    map[string]any             `json:"fields,omitempty"`     // 各引擎 Raw 扁平并集,首个非空优先
-    PerSource map[string]json.RawMessage `json:"per_source,omitempty"` // 各引擎原始 JSON,无损归档
+    IP        string                       `json:"ip,omitempty"`
+    Port      int                          `json:"port,omitempty"`
+    Hosts     []string                     `json:"hosts,omitempty"`
+    URLs      []string                     `json:"urls,omitempty"`
+    Sources   []string                     `json:"sources"`
+    Fields    map[string]any               `json:"fields,omitempty"`     // 各引擎 Raw 扁平并集,首个非空优先
+    PerSource map[string][]json.RawMessage `json:"per_source,omitempty"` // 各引擎原始 JSON 列表,无损归档(F1)
 }
 ```
 - **去重主键 IP:Port**(已确认);`IP` 空则退化 `host:Port` 兜底。
-- 合并:`Hosts/URLs/Sources` 并集去重排序;`Fields` 逐 key 并入(首个非空优先);`PerSource` 无损保留。
+- 合并:`Hosts/URLs/Sources` 并集去重排序;`Fields` 逐 key 并入(首个非空优先);`PerSource[engine]` **追加**每一行原始 JSON(同引擎多行不覆盖,F1)。
+- **确定性(F3)**:`Assets()` 按 `IP:Port` 稳定排序;编排层按固定引擎顺序串行喂入聚合器,使字段冲突「首个非空优先」的结果可复现。
 
 ## 6. 核心编排(pkg/search)
 

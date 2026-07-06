@@ -15,6 +15,20 @@
 
 > 全部任务完成:`go build/vet/test -race` 全绿;`-ir` 与 `-q` 两入口端到端冒烟通过。
 
+## 里程碑 C · code review 缺陷修复(SDD 缺陷修复流程)
+
+> 高强度 code review 后确认的问题,按红线以缺陷修复登记并实现。对应 `plan.md` 已同步更新的设计点。
+
+- **F1 · per_source 无损**(修 asset.go):同一引擎多行映射到同一 `IP:Port` 时不再覆盖。`PerSource` 由 `map[string]json.RawMessage` 改为 `map[string][]json.RawMessage`(每引擎保留所有行)。验收:两条同引擎同 key 结果 → `per_source[engine]` 含 2 条。
+- **F2 · 取反修复**(修 compiler/dialect.go):`Not(ne)` 不再产出畸形 `--`(双重否定归一为正);`Not(contains)` 对 fofa/hunter 用 `!=` 表达而非跳过。验收:表驱动断言 zoomeye `Not(port ne 80)` → `port:"80"`;fofa `Not(title contains x)` → `title!="x"`。
+- **F3 · 输出确定性**(修 search.go + asset.go):各引擎结果先入各自缓冲,`wg.Wait` 后按**固定引擎顺序**串行喂入聚合器;`Assets()` 按 `IP:Port` 稳定排序。验收:相同输入多次运行,资产顺序与字段冲突结果一致。
+- **F4 · 无 Key 早失败**(修 cmd/main.go):`-q` 且无 LLM api_key 时,给出清晰错误,不深入 HTTP 才报 401。
+- **F5 · 词汇单一来源**(修 queryir.go):`vocabulary`/`Fields()` 由单一 `allFields` 切片派生,消除与 const 块的重复维护面。
+- **F6 · 去冗余校验**(修 compiler/dialect.go):`Compile` 不再重复 `Validate`(`SearchIR` 已在入口校验一次)。
+- **F7 · 配置守卫一致**(修 config.go):`UNCOVER_TURBO_LLM_API_KEY` 空值不再清空文件中的 key(与 BASE_URL/MODEL 一致要求非空)。
+- **F8 · 复用 go-isatty**(修 render.go):TTY 检测改用已在依赖图中的 `mattn/go-isatty`,正确处理 Windows/cygwin。
+- **不改**:review #10(`jobs` 与 `result.Queries` 重复)—— F3 后 `jobs` 有序切片用于保证聚合顺序确定,故保留。
+
 ## 依赖关系概览
 
 ```

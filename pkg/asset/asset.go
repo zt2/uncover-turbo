@@ -19,13 +19,13 @@ import (
 
 // Asset is a single deduplicated asset aggregated across engines.
 type Asset struct {
-	IP        string                     `json:"ip,omitempty"`
-	Port      int                        `json:"port,omitempty"`
-	Hosts     []string                   `json:"hosts,omitempty"`      // union of hostnames seen for this IP:Port
-	URLs      []string                   `json:"urls,omitempty"`       // union of URLs
-	Sources   []string                   `json:"sources"`              // provenance: contributing engines
-	Fields    map[string]any             `json:"fields,omitempty"`     // flattened union of parsed Raw fields (first non-empty wins)
-	PerSource map[string]json.RawMessage `json:"per_source,omitempty"` // lossless original JSON per engine
+	IP        string                       `json:"ip,omitempty"`
+	Port      int                          `json:"port,omitempty"`
+	Hosts     []string                     `json:"hosts,omitempty"`      // union of hostnames seen for this IP:Port
+	URLs      []string                     `json:"urls,omitempty"`       // union of URLs
+	Sources   []string                     `json:"sources"`              // provenance: contributing engines
+	Fields    map[string]any               `json:"fields,omitempty"`     // flattened union of parsed Raw fields (first non-empty wins)
+	PerSource map[string][]json.RawMessage `json:"per_source,omitempty"` // lossless original JSON, all rows per engine
 }
 
 // Aggregator merges uncover results into deduplicated assets. It is not safe for
@@ -70,7 +70,7 @@ func (a *Aggregator) Add(r sources.Result) {
 			IP:        r.IP,
 			Port:      r.Port,
 			Fields:    map[string]any{},
-			PerSource: map[string]json.RawMessage{},
+			PerSource: map[string][]json.RawMessage{},
 		}
 		a.byKey[k] = as
 		a.order = append(a.order, k)
@@ -87,7 +87,10 @@ func (a *Aggregator) Add(r sources.Result) {
 	// Merge parsed raw fields (flattened union, first non-empty wins).
 	if len(r.Raw) > 0 {
 		if r.Source != "" {
-			as.PerSource[r.Source] = append(json.RawMessage(nil), r.Raw...)
+			// Append (do not overwrite): an engine may return multiple rows for
+			// the same IP:Port, and every raw record is kept losslessly.
+			raw := append(json.RawMessage(nil), r.Raw...)
+			as.PerSource[r.Source] = append(as.PerSource[r.Source], raw)
 		}
 		var parsed map[string]any
 		if err := json.Unmarshal(r.Raw, &parsed); err == nil {
@@ -103,9 +106,10 @@ func (a *Aggregator) Add(r sources.Result) {
 	}
 }
 
-// Assets returns the aggregated assets in stable insertion order, with slice
-// fields sorted for deterministic output. Empty maps are nilled out so they are
-// omitted from JSON.
+// Assets returns the aggregated assets sorted by IP:Port, with slice fields
+// sorted, so output is deterministic regardless of the order results were added
+// (which, under concurrent per-engine querying, is nondeterministic). Empty maps
+// are nilled out so they are omitted from JSON.
 func (a *Aggregator) Assets() []Asset {
 	out := make([]Asset, 0, len(a.order))
 	for _, k := range a.order {
@@ -121,6 +125,12 @@ func (a *Aggregator) Assets() []Asset {
 		}
 		out = append(out, *as)
 	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].IP != out[j].IP {
+			return out[i].IP < out[j].IP
+		}
+		return out[i].Port < out[j].Port
+	})
 	return out
 }
 

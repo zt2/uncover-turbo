@@ -184,3 +184,25 @@ func TestSearchIRInvalidIRErrors(t *testing.T) {
 		t.Error("expected error for invalid IR")
 	}
 }
+
+func TestSearchIRDeterministicFieldConflict(t *testing.T) {
+	// fofa and censys report the same asset with a conflicting "asn" value.
+	// Aggregation runs in enabled-engine order (fofa first), so fofa's value
+	// must win on every run regardless of goroutine scheduling.
+	newSvc := func() (*Service, *fakeQuerier) {
+		fq := newFakeQuerier()
+		fq.byEngine["fofa"] = []sources.Result{{Source: "fofa", IP: "1.2.3.4", Port: 80, Raw: []byte(`{"asn":"AS111"}`)}}
+		fq.byEngine["censys"] = []sources.Result{{Source: "censys", IP: "1.2.3.4", Port: 80, Raw: []byte(`{"asn":"AS999"}`)}}
+		return NewWith(cfgWith("fofa", "censys"), fq, nil), fq
+	}
+	for i := 0; i < 25; i++ {
+		svc, _ := newSvc()
+		res, err := svc.SearchIR(context.Background(), portUS())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(res.Assets) != 1 || res.Assets[0].Fields["asn"] != "AS111" {
+			t.Fatalf("run %d: expected fofa's asn AS111 to win deterministically, got %v", i, res.Assets[0].Fields["asn"])
+		}
+	}
+}

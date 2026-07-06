@@ -46,11 +46,56 @@ func TestMergeSameAssetSupersetFields(t *testing.T) {
 	}
 	// per_source lossless
 	if len(a.PerSource) != 2 {
-		t.Errorf("per_source should keep both raws, got %d", len(a.PerSource))
+		t.Errorf("per_source should keep both engines, got %d", len(a.PerSource))
+	}
+	if len(a.PerSource["censys"]) != 1 {
+		t.Fatalf("censys should have 1 raw row, got %d", len(a.PerSource["censys"]))
 	}
 	var censysRaw map[string]any
-	if err := json.Unmarshal(a.PerSource["censys"], &censysRaw); err != nil || censysRaw["title"] != "Ignored" {
+	if err := json.Unmarshal(a.PerSource["censys"][0], &censysRaw); err != nil || censysRaw["title"] != "Ignored" {
 		t.Errorf("per_source censys raw not preserved losslessly: %v %v", censysRaw, err)
+	}
+}
+
+func TestPerSourceKeepsAllRowsFromSameEngine(t *testing.T) {
+	agg := NewAggregator()
+	// One engine returns two rows for the same IP:Port (e.g. two vhosts).
+	agg.Add(res("fofa", "1.2.3.4", 443, "a.com", "", `{"host":"a.com"}`))
+	agg.Add(res("fofa", "1.2.3.4", 443, "b.com", "", `{"host":"b.com"}`))
+
+	a := agg.Assets()[0]
+	rows := a.PerSource["fofa"]
+	if len(rows) != 2 {
+		t.Fatalf("both fofa raw rows must be kept losslessly, got %d", len(rows))
+	}
+	seen := map[string]bool{}
+	for _, r := range rows {
+		var m map[string]any
+		if err := json.Unmarshal(r, &m); err != nil {
+			t.Fatal(err)
+		}
+		seen[m["host"].(string)] = true
+	}
+	if !seen["a.com"] || !seen["b.com"] {
+		t.Errorf("expected both a.com and b.com raws, got %v", seen)
+	}
+}
+
+func TestAssetsSortedByIPPort(t *testing.T) {
+	agg := NewAggregator()
+	// Add out of order; Assets() must return sorted by IP then Port.
+	agg.Add(res("fofa", "2.2.2.2", 80, "", "", `{}`))
+	agg.Add(res("fofa", "1.1.1.1", 443, "", "", `{}`))
+	agg.Add(res("fofa", "1.1.1.1", 80, "", "", `{}`))
+	got := agg.Assets()
+	want := []struct {
+		ip   string
+		port int
+	}{{"1.1.1.1", 80}, {"1.1.1.1", 443}, {"2.2.2.2", 80}}
+	for i, w := range want {
+		if got[i].IP != w.ip || got[i].Port != w.port {
+			t.Errorf("asset[%d] = %s:%d, want %s:%d", i, got[i].IP, got[i].Port, w.ip, w.port)
+		}
 	}
 }
 

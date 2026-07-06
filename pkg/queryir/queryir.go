@@ -37,21 +37,29 @@ const (
 	FieldOS        Field = "os"              // operating system
 )
 
-// vocabulary is the set of all known canonical fields, used by Validate.
-var vocabulary = map[Field]struct{}{
-	FieldIP: {}, FieldPort: {}, FieldDomain: {}, FieldHost: {},
-	FieldTitle: {}, FieldBody: {}, FieldProduct: {}, FieldCountry: {},
-	FieldOrg: {}, FieldASN: {}, FieldProtocol: {}, FieldStatus: {},
-	FieldCertCN: {}, FieldOS: {},
+// allFields is the single source of truth for the canonical vocabulary. Both the
+// lookup set (vocabulary) and Fields() derive from it, so adding a field is a
+// one-line change here rather than edits to multiple parallel lists.
+var allFields = []Field{
+	FieldIP, FieldPort, FieldDomain, FieldHost,
+	FieldTitle, FieldBody, FieldProduct, FieldCountry,
+	FieldOrg, FieldASN, FieldProtocol, FieldStatus,
+	FieldCertCN, FieldOS,
 }
+
+// vocabulary is the set of all known canonical fields, used by Validate.
+var vocabulary = func() map[Field]struct{} {
+	m := make(map[Field]struct{}, len(allFields))
+	for _, f := range allFields {
+		m[f] = struct{}{}
+	}
+	return m
+}()
 
 // Fields returns the canonical vocabulary as a sorted slice. Useful for building
 // LLM prompts and documentation.
 func Fields() []Field {
-	out := make([]Field, 0, len(vocabulary))
-	for f := range vocabulary {
-		out = append(out, f)
-	}
+	out := append([]Field(nil), allFields...)
 	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
 	return out
 }

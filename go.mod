@@ -6,6 +6,7 @@ toolchain go1.24.7
 
 require (
 	github.com/logrusorgru/aurora v2.0.3+incompatible
+	github.com/mattn/go-isatty v0.0.20
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/uncover v1.2.1
 	github.com/sashabaranov/go-openai v1.4.2
@@ -30,7 +31,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mholt/archiver/v3 v3.5.1 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
 	github.com/miekg/dns v1.1.62 // indirect

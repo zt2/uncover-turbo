@@ -111,37 +111,47 @@ func (s *Service) SearchIR(ctx context.Context, ir queryir.Expr) (*Result, error
 		jobs = append(jobs, job{engine: engine, query: q})
 	}
 
-	// Phase 2 (concurrent): query each engine and merge into the aggregator.
-	agg := asset.NewAggregator()
-	var mu sync.Mutex
+	// Phase 2 (concurrent): query each engine into its own buffer. Each
+	// goroutine writes only its own slice index, so no shared state and no lock.
+	collected := make([][]sources.Result, len(jobs))
+	queryErrs := make([]error, len(jobs))
 	var wg sync.WaitGroup
-	for _, j := range jobs {
+	for i, j := range jobs {
 		wg.Add(1)
-		go func(engine, query string) {
+		go func(idx int, engine, query string) {
 			defer wg.Done()
 			ch, err := s.querier.Query(ctx, engine, query)
 			if err != nil {
-				mu.Lock()
-				result.EngineErrors[engine] = err
-				mu.Unlock()
+				queryErrs[idx] = err
 				return
 			}
+			var rows []sources.Result
 			for r := range ch {
 				if r.Error != nil {
-					mu.Lock()
-					if result.EngineErrors[engine] == nil {
-						result.EngineErrors[engine] = r.Error
+					if queryErrs[idx] == nil {
+						queryErrs[idx] = r.Error
 					}
-					mu.Unlock()
 					continue
 				}
-				mu.Lock()
-				agg.Add(r)
-				mu.Unlock()
+				rows = append(rows, r)
 			}
-		}(j.engine, j.query)
+			collected[idx] = rows
+		}(i, j.engine, j.query)
 	}
 	wg.Wait()
+
+	// Phase 3 (deterministic): aggregate in fixed engine (job) order, so both
+	// asset ordering and "first non-empty wins" field-conflict resolution are
+	// reproducible run-to-run regardless of goroutine scheduling.
+	agg := asset.NewAggregator()
+	for i, j := range jobs {
+		if queryErrs[i] != nil {
+			result.EngineErrors[j.engine] = queryErrs[i]
+		}
+		for _, r := range collected[i] {
+			agg.Add(r)
+		}
+	}
 
 	result.Assets = agg.Assets()
 	return result, nil

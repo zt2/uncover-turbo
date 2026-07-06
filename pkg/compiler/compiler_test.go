@@ -48,6 +48,17 @@ func TestCompileExact(t *testing.T) {
 		{"zoomeye", and(m(queryir.FieldPort, queryir.OpEq, "80"), m(queryir.FieldCountry, queryir.OpEq, "US")), `port:"80" country:"US"`},
 		{"zoomeye", not(m(queryir.FieldTitle, queryir.OpEq, "admin")), `-title:"admin"`},
 		{"zoomeye", m(queryir.FieldTitle, queryir.OpNe, "admin"), `-title:"admin"`},
+		// negation edge cases (regression guards)
+		// NOT(field != v) collapses to a positive equality (no double negation).
+		{"zoomeye", not(m(queryir.FieldPort, queryir.OpNe, "80")), `port:"80"`},
+		{"censys", not(m(queryir.FieldPort, queryir.OpNe, "80")), `services.port: 80`},
+		{"fofa", not(m(queryir.FieldPort, queryir.OpNe, "80")), `port="80"`},
+		// NOT(contains) is expressible on field-level-!= dialects via `!=`.
+		{"fofa", not(m(queryir.FieldTitle, queryir.OpContains, "admin")), `title!="admin"`},
+		{"hunter", not(m(queryir.FieldTitle, queryir.OpContains, "admin")), `web.title!="admin"`},
+		// NOT(contains) on unary-negation dialects wraps/prefixes.
+		{"censys", not(m(queryir.FieldBody, queryir.OpContains, "x")), `not (services.http.response.body: "x")`},
+		{"zoomeye", not(m(queryir.FieldTitle, queryir.OpContains, "x")), `-title:"x"`},
 	}
 	for _, tc := range cases {
 		c, ok := Get(tc.engine)
@@ -75,7 +86,7 @@ func TestCompileUnsupported(t *testing.T) {
 		{"zoomeye", or(m(queryir.FieldPort, queryir.OpEq, "1"), m(queryir.FieldPort, queryir.OpEq, "2"))}, // no OR
 		{"zoomeye", not(portUS())},                                       // cannot negate a compound
 		{"fofa", not(portUS())},                                          // fofa has no group NOT
-		{"fofa", not(m(queryir.FieldTitle, queryir.OpContains, "x"))},    // cannot negate contains
+		{"hunter", not(portUS())},                                        // hunter has no group NOT
 	}
 	for _, tc := range cases {
 		c, _ := Get(tc.engine)

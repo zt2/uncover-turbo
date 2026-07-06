@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/mattn/go-isatty"
 	"github.com/zt2/uncover-turbo/pkg/search"
 )
 
@@ -29,16 +30,13 @@ func ResolveColor(mode string, w io.Writer) bool {
 	}
 }
 
-// isTerminal reports whether w is a character device (a reasonable proxy for a
-// TTY) without pulling in an extra dependency.
+// isTerminal reports whether w is a terminal, using go-isatty so Windows console
+// handles and cygwin/msys pty pipes are detected correctly.
 func isTerminal(w io.Writer) bool {
 	f, ok := w.(*os.File)
 	if !ok {
 		return false
 	}
-	fi, err := f.Stat()
-	if err != nil {
-		return false
-	}
-	return fi.Mode()&os.ModeCharDevice != 0
+	fd := f.Fd()
+	return isatty.IsTerminal(fd) || isatty.IsCygwinTerminal(fd)
 }

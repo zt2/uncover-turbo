@@ -59,6 +59,9 @@ func main() {
 		}
 		res, err = svc.SearchIR(ctx, ir)
 	case opts.nl != "":
+		if cfg.LLM.APIKey == "" {
+			fatal("natural-language query (-q) needs an LLM API key; set %s or llm.api_key in the config", config.EnvLLMAPIKey)
+		}
 		res, err = svc.SearchNL(ctx, opts.nl)
 	default:
 		fatal("provide a query: -ir '<json>' (machine) or -q '<text>' (natural language)")

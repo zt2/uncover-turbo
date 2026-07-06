@@ -35,10 +35,10 @@ type dialect struct {
 
 func (d *dialect) Engine() string { return d.name }
 
+// Compile assumes expr is already validated (search.SearchIR validates once at
+// the entry point). It does not re-validate, to avoid walking the same immutable
+// tree once per engine; malformed leaves still surface as ErrUnsupported.
 func (d *dialect) Compile(expr queryir.Expr) (string, error) {
-	if err := expr.Validate(); err != nil {
-		return "", err
-	}
 	return d.compile(expr)
 }
 
@@ -76,62 +76,77 @@ func (d *dialect) join(children []queryir.Expr, op string) (string, error) {
 	return joined, nil
 }
 
-// leaf renders a single predicate, mapping the canonical field to the engine's
-// field name and delegating formatting to the dialect. For engines without a
-// field-level "!=", an OpNe leaf is rewritten as a unary-NOT of the equality.
+// leaf renders a single predicate positively. An OpNe leaf is the negation of an
+// equality, so it is rendered via the dialect's negation model.
 func (d *dialect) leaf(m queryir.Match) (string, error) {
 	ef, ok := d.fields[m.Field]
 	if !ok {
 		return "", fmt.Errorf("%w: %s does not support field %q", ErrUnsupported, d.name, m.Field)
 	}
-	if m.Op == queryir.OpNe && !d.fieldLevelNe {
-		pos := m
-		pos.Op = queryir.OpEq
-		return d.compileNot(queryir.Expr{Match: &pos})
+	switch m.Op {
+	case queryir.OpEq, queryir.OpContains:
+		return d.format(ef, m.Op, m.Value)
+	case queryir.OpNe:
+		return d.negatePredicate(ef, m.Value)
+	default:
+		return "", fmt.Errorf("%w: %s op %q", ErrUnsupported, d.name, m.Op)
 	}
-	return d.format(ef, m.Op, m.Value)
 }
 
-// compileNot negates a subexpression using whichever negation model the dialect
-// supports.
-func (d *dialect) compileNot(child queryir.Expr) (string, error) {
-	if d.fieldLevelNe {
-		if child.Match == nil {
-			return "", fmt.Errorf("%w: %s cannot negate a compound expression", ErrUnsupported, d.name)
+// negatePredicate renders "field is NOT (fuzzy-)equal value" using whichever
+// negation model the dialect supports. Since eq and contains format identically
+// for every dialect, one helper covers negating either.
+func (d *dialect) negatePredicate(engineField, value string) (string, error) {
+	switch {
+	case d.fieldLevelNe:
+		return d.format(engineField, queryir.OpNe, value)
+	case d.notGroup: // unary NOT over a group, e.g. censys `not (f: v)`
+		pos, err := d.format(engineField, queryir.OpEq, value)
+		if err != nil {
+			return "", err
 		}
-		switch child.Match.Op {
-		case queryir.OpEq:
-			m := *child.Match
-			m.Op = queryir.OpNe
-			return d.leaf(m)
+		return d.not + "(" + pos + ")", nil
+	case d.not != "": // token-level prefix, e.g. zoomeye `-f:"v"`
+		pos, err := d.format(engineField, queryir.OpEq, value)
+		if err != nil {
+			return "", err
+		}
+		return d.not + pos, nil
+	default:
+		return "", fmt.Errorf("%w: %s has no negation", ErrUnsupported, d.name)
+	}
+}
+
+// compileNot negates a subexpression. A negated leaf collapses to a single
+// predicate (double negation cancels for OpNe); a negated compound is only
+// expressible by dialects with a unary group-NOT (censys).
+func (d *dialect) compileNot(child queryir.Expr) (string, error) {
+	if child.Match != nil {
+		m := *child.Match
+		ef, ok := d.fields[m.Field]
+		if !ok {
+			return "", fmt.Errorf("%w: %s does not support field %q", ErrUnsupported, d.name, m.Field)
+		}
+		switch m.Op {
+		case queryir.OpEq, queryir.OpContains:
+			return d.negatePredicate(ef, m.Value)
 		case queryir.OpNe:
-			m := *child.Match
-			m.Op = queryir.OpEq
-			return d.leaf(m)
+			// NOT(field != value) == field == value.
+			return d.format(ef, queryir.OpEq, m.Value)
 		default:
-			return "", fmt.Errorf("%w: %s cannot negate a %q predicate", ErrUnsupported, d.name, child.Match.Op)
+			return "", fmt.Errorf("%w: %s op %q", ErrUnsupported, d.name, m.Op)
 		}
 	}
 
-	if d.not == "" {
-		return "", fmt.Errorf("%w: %s has no negation", ErrUnsupported, d.name)
-	}
-	if d.notGroup {
+	// Compound child: only a unary group-NOT dialect can express it.
+	if d.notGroup && d.not != "" {
 		s, err := d.compile(child)
 		if err != nil {
 			return "", err
 		}
 		return d.not + "(" + s + ")", nil
 	}
-	// Token-level negation prefix (e.g. zoomeye "-"): single predicate only.
-	if child.Match == nil {
-		return "", fmt.Errorf("%w: %s can only negate a single predicate", ErrUnsupported, d.name)
-	}
-	s, err := d.leaf(*child.Match)
-	if err != nil {
-		return "", err
-	}
-	return d.not + s, nil
+	return "", fmt.Errorf("%w: %s cannot negate a compound expression", ErrUnsupported, d.name)
 }
 
 // escapeDQ escapes backslashes and double quotes for values placed inside
