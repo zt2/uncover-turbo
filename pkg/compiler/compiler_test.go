@@ -81,12 +81,12 @@ func TestCompileUnsupported(t *testing.T) {
 		engine string
 		expr   queryir.Expr
 	}{
-		{"hunter", m(queryir.FieldOS, queryir.OpEq, "linux")},            // field not mapped
-		{"zoomeye", m(queryir.FieldBody, queryir.OpContains, "x")},       // field not mapped
+		{"hunter", m(queryir.FieldOS, queryir.OpEq, "linux")},                                             // field not mapped
+		{"zoomeye", m(queryir.FieldBody, queryir.OpContains, "x")},                                        // field not mapped
 		{"zoomeye", or(m(queryir.FieldPort, queryir.OpEq, "1"), m(queryir.FieldPort, queryir.OpEq, "2"))}, // no OR
-		{"zoomeye", not(portUS())},                                       // cannot negate a compound
-		{"fofa", not(portUS())},                                          // fofa has no group NOT
-		{"hunter", not(portUS())},                                        // hunter has no group NOT
+		{"zoomeye", not(portUS())}, // cannot negate a compound
+		{"fofa", not(portUS())},    // fofa has no group NOT
+		{"hunter", not(portUS())},  // hunter has no group NOT
 	}
 	for _, tc := range cases {
 		c, _ := Get(tc.engine)

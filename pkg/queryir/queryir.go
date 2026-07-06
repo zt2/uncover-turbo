@@ -21,20 +21,20 @@ type Field string
 // Canonical field vocabulary (v1 core set). This is an open set: adding a field
 // only requires a new entry here plus a row in each engine's mapping table.
 const (
-	FieldIP        Field = "ip"              // IP address
-	FieldPort      Field = "port"            // port number
-	FieldDomain    Field = "domain"          // registrable domain
-	FieldHost      Field = "host"            // hostname
-	FieldTitle     Field = "title"           // HTTP title
-	FieldBody      Field = "body"            // response body / content keyword
-	FieldProduct   Field = "product"         // component / product name
-	FieldCountry   Field = "country"         // country code
-	FieldOrg       Field = "org"             // organization
-	FieldASN       Field = "asn"             // autonomous system number
-	FieldProtocol  Field = "protocol"        // service / protocol
-	FieldStatus    Field = "status"          // HTTP status code
-	FieldCertCN    Field = "cert.subject_cn" // certificate subject CN
-	FieldOS        Field = "os"              // operating system
+	FieldIP       Field = "ip"              // IP address
+	FieldPort     Field = "port"            // port number
+	FieldDomain   Field = "domain"          // registrable domain
+	FieldHost     Field = "host"            // hostname
+	FieldTitle    Field = "title"           // HTTP title
+	FieldBody     Field = "body"            // response body / content keyword
+	FieldProduct  Field = "product"         // component / product name
+	FieldCountry  Field = "country"         // country code
+	FieldOrg      Field = "org"             // organization
+	FieldASN      Field = "asn"             // autonomous system number
+	FieldProtocol Field = "protocol"        // service / protocol
+	FieldStatus   Field = "status"          // HTTP status code
+	FieldCertCN   Field = "cert.subject_cn" // certificate subject CN
+	FieldOS       Field = "os"              // operating system
 )
 
 // allFields is the single source of truth for the canonical vocabulary. Both the
