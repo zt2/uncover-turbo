@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -76,6 +77,15 @@ func TestEnvOverridesFile(t *testing.T) {
 	}
 	if cfg.LLM.BaseURL != "https://env.example/v1" {
 		t.Errorf("env should override base_url, got %q", cfg.LLM.BaseURL)
+	}
+}
+
+func TestDefaultPath(t *testing.T) {
+	p := DefaultPath()
+	// When a home dir is available it must point at the expected file; if not,
+	// it is empty. Either way it must not be a bare/relative fragment.
+	if p != "" && !strings.HasSuffix(p, filepath.Join(".config", "uncover-turbo", "config.yaml")) {
+		t.Errorf("unexpected default path: %q", p)
 	}
 }
 

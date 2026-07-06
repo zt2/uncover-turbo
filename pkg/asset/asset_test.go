@@ -137,6 +137,24 @@ func TestStableOrderAndSorting(t *testing.T) {
 	}
 }
 
+func TestEmptyStructuredValuesAreFilled(t *testing.T) {
+	agg := NewAggregator()
+	// First engine reports the field as an empty array / empty object (no info);
+	// second engine has real values. Superset merge must take the non-empty ones.
+	agg.Add(res("fofa", "1.2.3.4", 80, "", "", `{"tags":[],"meta":{},"name":""}`))
+	agg.Add(res("censys", "1.2.3.4", 80, "", "", `{"tags":["web"],"meta":{"k":"v"},"name":"nginx"}`))
+	f := agg.Assets()[0].Fields
+	if tags, _ := f["tags"].([]any); len(tags) != 1 || tags[0] != "web" {
+		t.Errorf("empty array should be filled from censys: %v", f["tags"])
+	}
+	if meta, _ := f["meta"].(map[string]any); meta["k"] != "v" {
+		t.Errorf("empty object should be filled from censys: %v", f["meta"])
+	}
+	if f["name"] != "nginx" {
+		t.Errorf("empty string should be filled from censys: %v", f["name"])
+	}
+}
+
 func TestEmptyMapsOmitted(t *testing.T) {
 	agg := NewAggregator()
 	agg.Add(res("fofa", "1.2.3.4", 80, "", "", ``)) // no raw
