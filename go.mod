@@ -5,10 +5,11 @@ go 1.24.0
 toolchain go1.24.7
 
 require (
+	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/projectdiscovery/fdmax v0.0.4
-	github.com/projectdiscovery/gologger v1.1.43
 	github.com/projectdiscovery/uncover v1.2.1
 	github.com/sashabaranov/go-openai v1.4.2
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -47,7 +48,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
-	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -69,6 +69,7 @@ require (
 	github.com/projectdiscovery/blackrock v0.0.1 // indirect
 	github.com/projectdiscovery/fastdialer v0.3.0 // indirect
 	github.com/projectdiscovery/goflags v0.1.70 // indirect
+	github.com/projectdiscovery/gologger v1.1.43 // indirect
 	github.com/projectdiscovery/hmap v0.0.77 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
 	github.com/projectdiscovery/mapcidr v1.1.34 // indirect
@@ -117,5 +118,4 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
 	gopkg.in/djherbis/times.v1 v1.3.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

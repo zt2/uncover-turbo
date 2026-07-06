@@ -176,15 +176,15 @@ YAML @ `~/.config/uncover-turbo/config.yaml`,优先级 **CLI > 环境变量 > �
 cmd/uncover-turbo/main.go
 pkg/config/          配置载入(YAML + env + 优先级)
 pkg/queryir/         IR:AST、词汇、Validate、String、JSON
-pkg/compiler/        Compiler 接口 + registry
-pkg/compiler/{fofa,censys,hunter,zoomeye}/   各引擎确定性编译器 + 字段映射
-pkg/prompts/         NL→IR 单一 system prompt
-pkg/llm/             Translator:NL → queryir.Expr(go-openai + BaseURL)
-pkg/asset/           Asset 模型
+pkg/compiler/        Compiler 接口 + registry + 数据驱动 dialect + 四引擎映射(单包)
+pkg/prompts/         NL→IR 单一 system prompt(里程碑 B)
+pkg/llm/             Translator:NL → queryir.Expr(go-openai + BaseURL)(里程碑 B)
+pkg/asset/           Asset 模型 + Aggregator
 pkg/search/          编排:SearchNL / SearchIR
 pkg/render/          JSON / 彩色文本
 specs/cross-engine-search/   本 SDD 文档
 ```
+> **实现修订**:各引擎编译器最终采用**单包数据驱动 dialect**(`pkg/compiler` 内 `dialect.go`+`engines.go`),而非每引擎一个子包 —— 引擎差异仅是「字段映射表 + 布尔语法 + 取反模型」的数据,单包更简洁、无样板、同样可表驱动测试。§3 的「每引擎一个编译器」按此理解为「每引擎一个 dialect 值」。
 > 旧 `pkg/bot` 被 `pkg/llm`+`pkg/prompts` 取代;旧 `main.go` 完全重写;README 更新纳入 Tasks。
 
 ## 11. 测试策略(支撑 AC8,得益于确定性编译更好测)

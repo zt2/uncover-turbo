@@ -38,24 +38,16 @@ T10 config(独立) ──────────────┼─ T11 search �
 - **验收**:单测通过——JSON 往返一致;非法结构(多字段同设/空 value/未知 field)被 `Validate` 拒;`String()` 输出符合预期。**依赖 T0**。
 
 ## T2 · pkg/compiler(编译器接口 + 注册表)
-- **动作**:`Compiler` 接口(`Engine()`, `Compile(Expr)(string,error)`);`ErrUnsupported`;`registry`(按引擎名取编译器);通用布尔遍历骨架(供各引擎复用 And/Or/Not 组合,叶子交由引擎 `matchToken`)。
-- **验收**:接口与注册表编译通过;有一个最小 fake 编译器的单测验证注册/取用与不支持返回。**依赖 T1**。
+- **动作**:`Compiler` 接口(`Engine()`, `Compile(Expr)(string,error)`);`ErrUnsupported`;`registry`(按引擎名取编译器);数据驱动 `dialect`(通用布尔遍历 + 取反模型 + 叶子格式化)。
+- **验收**:接口与注册表编译通过;单测验证注册/取用与不支持返回。**依赖 T1**。
+- **实现修订**:四引擎不再各自子包,而是 `pkg/compiler/engines.go` 内四个 `dialect` 值(字段映射 + 布尔语法),由 `dialect.go` 的通用编译逻辑驱动。
 
-## T3 · pkg/compiler/fofa
-- **动作**:fofa 字段映射表 + `matchToken`(`field="value"`、`!=`、`&&`/`||`/`!`、分组 `()`);注册到 registry。
-- **验收**:表驱动单测——多组 IR → 断言**精确** fofa 查询串;不支持字段返回 `ErrUnsupported`。**依赖 T2**。
-
-## T4 · pkg/compiler/censys
-- **动作**:censys 字段映射(`services.port`、`location.country_code`、`services.service_name` 等)+ `field: value`、`and/or/not`;注册。
-- **验收**:表驱动单测断言精确 censys 查询串;不支持字段 `ErrUnsupported`。**依赖 T2**。
-
-## T5 · pkg/compiler/hunter
-- **动作**:hunter 字段映射 + 语法(`field="value"`、`&&`/`||`);注册。
-- **验收**:表驱动单测断言精确 hunter 查询串;不支持 `ErrUnsupported`。**依赖 T2**。
-
-## T6 · pkg/compiler/zoomeye
-- **动作**:zoomeye 字段映射 + 语法(`key:"value"`、空格隐式 AND / `-` 取反 等);注册。
-- **验收**:表驱动单测断言精确 zoomeye 查询串;不支持 `ErrUnsupported`。**依赖 T2**。
+## T3–T6 · 四引擎 dialect(fofa / censys / hunter / zoomeye)
+- **动作**:在 `engines.go` 为四家各定义 `dialect`——字段映射表 + 布尔/取反语法:
+  - fofa/hunter:`field="value"`、`&&`/`||`、字段级 `!=`、分组 `()`;
+  - censys:`field: value`、`and`/`or`、一元 `not (...)`、分组 `()`;
+  - zoomeye:`key:"value"`、空格隐式 AND、`-` 词级取反(无 OR / 无分组取反 → `ErrUnsupported`)。
+- **验收**:表驱动单测断言**精确**查询串 + 不支持字段/op 返回 `ErrUnsupported` + 值转义。**依赖 T2**。
 
 ## T7 · pkg/asset(模型 + 聚合去重)
 - **动作**:`Asset` 结构(§5);`Aggregator`——`Add(sources.Result)` 按 `IP:Port`(空 IP 退化 `host:Port`)合并;`Assets()` 返回稳定排序结果。合并规则:Hosts/URLs/Sources 并集去重排序;`Fields` 解析各 Raw 扁平并入(首个非空优先);`PerSource[source]=Raw` 无损。
