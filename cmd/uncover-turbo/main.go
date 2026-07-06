@@ -19,6 +19,7 @@ import (
 
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/zt2/uncover-turbo/pkg/config"
+	"github.com/zt2/uncover-turbo/pkg/llm"
 	"github.com/zt2/uncover-turbo/pkg/queryir"
 	"github.com/zt2/uncover-turbo/pkg/render"
 	"github.com/zt2/uncover-turbo/pkg/search"
@@ -46,6 +47,7 @@ func main() {
 	applyOverrides(cfg, opts)
 
 	svc := search.New(cfg)
+	svc.SetTranslator(llm.New(cfg.LLM))
 	ctx := context.Background()
 
 	var res *search.Result
